@@ -2,11 +2,13 @@
 """
 Created on Fri Jun 14 14:36:29 2024
 
-@author: markt
+Last Revision: 6.21.2024
+
+@author: Mark Turner
 
 Telemetry Message Plotter
 
-plots values from csv file created by TMdecoder.py
+Plots values from csv file created by TMdecoder. Test files are located in the folder 'TelemetryMessages'.
 
 User Inputs (command line): Instrument Type (LPC or RS41)
                             csv filename
@@ -53,16 +55,14 @@ def smooth(y, box_pts):
     return y_smooth
 '''
 
+# Function to read in the user-defined filename into a PANDAS DataFrame
 def read_csv(filename):
     if 'LPC' or 'lpc' in Instrument_name:
-        #print("LPC in Filename")
         global LPC_data
         LPC_data = pd.read_table(filename, sep=",",skiprows=2) #, header = [2],index_col="Time"
         LPC_data.drop(0, inplace=True)
         LPC_data.rename(columns=lambda x: x.strip(), inplace=True)
-        #return LPC_data
     elif 'RS41' or 'rs41' in Instrument_name:
-        #print('RS41 in filename')
         global RS41_data
         RS41_data = pd.read_table(filename, sep=",", header=[0])
         #RS41_data.drop(0,axis='index')
@@ -70,6 +70,8 @@ def read_csv(filename):
     else:
         print("Invalid filename")
 
+#Function to graph the data. Takes bool input 'log_lin', which is True by default and switches when
+#the button in the PySimpleGUI window is pressed
 def make_LOPC_fig(log_lin):  #Plot the CN Counts
     try:
         if 'LPC' or 'lpc' in Instrument_name:
@@ -169,11 +171,14 @@ def make_LOPC_fig(log_lin):  #Plot the CN Counts
     except:
         print('Plotting Exception')
  
+#main function runs the other funcions when TMplotter.py is run as a script
 def main():
+    #set global variables to be accessed across all functions
     global LPC_data
     global RS41_data
     log_plot = True
     
+    #initialize PySimpleGUI interactive window and Housekeeping window
     plot_frame_layout = [[sg.Text('Plot Axis Type: ', font = ('any', 16))],
                          [sg.Button('Log', font = ('any', 16), border_width = 3), sg.Button('Linear', font = ('any', 16),border_width = 3)],
                          [sg.Button('Exit',  font = ('any', 16),border_width = 3, button_color = ('black', 'red'))]]
@@ -211,6 +216,7 @@ def main():
     window2 = sg.Window(hk_name, layout_hk)
     
     while True:
+        #check if either PYSimpleGUI window has been closed or 'Exit' has been pressed
         event, values = window1.Read(timeout=0)
         event2, values2 = window2.Read(timeout=0)
         if event is None or event == 'Exit':
@@ -220,6 +226,8 @@ def main():
             break
         #if event2 is None or event2 == 'Exit':
             #window2.close()
+        
+        #check if the y-axis scaling has been switched from log to linear
         if event == 'Log':
               log_plot = True
               print('Switching to Log')
@@ -227,6 +235,7 @@ def main():
               log_plot = False
               print('Switching to Linear')
             
+        #Plot data
         time.sleep(0.01)
         plt.clf()
         read_csv(filename)
@@ -236,8 +245,9 @@ def main():
         make_LOPC_fig(log_plot)
         time.sleep(0.01) 
         plt.draw()
-        time.sleep(0.01) 
-               #Pause Briefly. Important to keep drawnow from crashing
+        time.sleep(0.01)        #Pause Briefly. Important to keep drawnow from crashing
+
+        #Update Housekeeping window
         if 'LPC' or 'lpc' in Instrument_name:
             window2.Element('_OPC_Time_').Update(LPC_data['Time'].iloc[-1])
             window2.Element('_CN_Counts_').Update(int(float(LPC_data['300'].iloc[-1])*(flow*1000.0/30.0)))
@@ -255,7 +265,8 @@ def main():
             window2.Element('_Air_Temp_').Update(RS41_data['air_temp_degC'].iloc[-1])
             window2.Element('_humidity_percent_').Update(RS41_data['humdity_percent'].iloc[-1])
             window2.Element('_pres_mb_').Update(RS41_data['pres_mb'].iloc[-1])
-            #If you have 150 or more points (5 minutes), delete the first one from the array
+        
+        #If you have 150 or more points (5 minutes), delete the first one from the array
         if 'LPC' or 'lpc' in Instrument_name:
             if(len(LPC_data)>150):
                 LPC_data = LPC_data.tail(LPC_data.shape[0]-1)
@@ -263,6 +274,6 @@ def main():
             if(len(RS41_data)>150):
                 RS41_data = RS41_data.tail(RS41_data.shape[0]-1)
             
-            
+#Run main if run as a script. If called in another script, functions will be available but main will not run on its own
 if (__name__ == '__main__'): 
     main()          

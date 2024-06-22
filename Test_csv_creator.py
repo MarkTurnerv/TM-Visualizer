@@ -2,7 +2,9 @@
 """
 Created on Tue Jun 18 16:08:17 2024
 
-@author: markt
+@author: Mark Turner
+
+Creates mock csv files to imitate the LPC instrument for testing TMplotter.py
 """
 import time
 f = open("TM_LPCtest.csv", "w")

@@ -3,9 +3,10 @@ Python script (TMplotter.py) that takes csv files from TMdecoder (which converts
 
 ### Inputs
 
-Requires commandline inputs:
+Requires inputs on the graphics window popup:
 * Instrument type (LPC or RS41)
 * filename.csv: the csv file that TM Visualizer is reading the data from
+Both inputs can be selected from a dropdown menu or typed in
 
 ## Test_csv_creator
 

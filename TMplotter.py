@@ -38,8 +38,8 @@ c0 = 297.09
 flow = 20.0
 cal_val = np.array([999,hg_m,hg_b,lg_m, lg_b, c4, c3, c2, c1, c0, flow])
 diams = [275,300,325,350,375,400,450,500,550,600,650,700,750,800,900,1000,1200,1400,1600,1800,2000,2500,3000,3500,4000,6000,8000,10000,13000,16000,24000]
-Instrument_name = input("Enter Instrument (LPC or RS41):")
-filename = input("Enter filename: ")
+#Instrument_name = input("Enter Instrument (LPC or RS41):")
+#filename = input("Enter filename: ")
 
 plt.ion() #Tell matplotlib you want interactive mode to plot live data
 '''LPC String Header
@@ -54,15 +54,59 @@ def smooth(y, box_pts):
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
 '''
+#Function to search for csv file
+def find_csv():
+    import os
+    global filename
+    global filepath
+    global Instrument_name
+    csv_files = []
+    filepaths = []
+    # This is to get the directory that the program 
+    # is currently running in.
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+     
+    for root, dirs, files in os.walk(dir_path):
+        for file in files: 
+     
+            # search for .csv files
+            if file.endswith('.csv'):
+                csv_files.append(file)
+                filepaths.append(root)
+    Instrument_list = ['LPC','RS41']
+    Inst_layout = [[sg.InputCombo(values=Instrument_list, key = '_inst_',  font = ('any', 16))]]
+    file_layout = [[sg.InputCombo(values=csv_files, key = '_file_',  font = ('any', 16))]]
+    #Enter_filename_layout = [sg.Text('Or Enter File Name: ',  font = ('any', 16)), sg.Input(do_not_clear=True, key='_FileName_', font = ('any', 16))]
+
+    layout_find_csv = [[sg.Frame('Select Instrument Type: ', Inst_layout, font = 'any 16')],
+                        [sg.Frame('Select csv File: ', file_layout, font = 'any 16')],
+                        #[sg.Frame('Or Enter Filename: ', Enter_filename_layout, font = 'any 16')],
+                        [sg.Submit( font = ('any', 16)), sg.Cancel( font = ('any', 16))]]
+    
+    serial_window = sg.Window('Select Instrument Tpye and File', layout_find_csv)
+    event, values = serial_window.Read()
+    serial_window.Close()
+
+    if event is None or event == 'Cancel':
+        sys.exit()
+    if event == 'Submit':
+        filename = values['_file_']
+        if filename in csv_files:
+            filepath = filepaths[csv_files.index(filename)]
+            filename = filepath + '\\' + filename
+        Instrument_name = values['_inst_']
+
+        
+
 
 # Function to read in the user-defined filename into a PANDAS DataFrame
 def read_csv(filename):
-    if 'LPC' or 'lpc' in Instrument_name:
+    if 'LPC' in Instrument_name:
         global LPC_data
         LPC_data = pd.read_table(filename, sep=",",skiprows=2) #, header = [2],index_col="Time"
         LPC_data.drop(0, inplace=True)
         LPC_data.rename(columns=lambda x: x.strip(), inplace=True)
-    elif 'RS41' or 'rs41' in Instrument_name:
+    elif 'RS41' in Instrument_name:
         global RS41_data
         RS41_data = pd.read_table(filename, sep=",", header=[0])
         #RS41_data.drop(0,axis='index')
@@ -74,7 +118,7 @@ def read_csv(filename):
 #the button in the PySimpleGUI window is pressed
 def make_LOPC_fig(log_lin):  #Plot the CN Counts
     try:
-        if 'LPC' or 'lpc' in Instrument_name:
+        if 'LPC' in Instrument_name:
             plt.subplot2grid((4,1), (3, 0))
             plt.ylim(0, 1000)
             plt.title('Currents', fontsize = 'x-small')      #Plot the title
@@ -128,7 +172,7 @@ def make_LOPC_fig(log_lin):  #Plot the CN Counts
                 plt.yscale('log')
             plt.legend(loc='upper left', fontsize = 'x-small')
             plt.tight_layout()
-        elif 'RS41' or 'rs41' in Instrument_name:
+        elif 'RS41' in Instrument_name:
             plt.subplot2grid((4,1),(0,0))
             #plt.ylim()
             plt.title('RS41 Air Temperature')
@@ -177,7 +221,7 @@ def main():
     global LPC_data
     global RS41_data
     log_plot = True
-    
+    find_csv()
     #initialize PySimpleGUI interactive window and Housekeeping window
     plot_frame_layout = [[sg.Text('Plot Axis Type: ', font = ('any', 16))],
                          [sg.Button('Log', font = ('any', 16), border_width = 3), sg.Button('Linear', font = ('any', 16),border_width = 3)],
@@ -185,7 +229,7 @@ def main():
     
     window1 = sg.Window("Graphing Axis", plot_frame_layout, keep_on_top=True)
     
-    if 'LPC' or 'lpc' in Instrument_name:
+    if 'LPC' in Instrument_name:
         layout_hk =[[sg.Text('LPC House Keeping', font = ('any', 16, 'underline'))],
                     [sg.Text('')],
                     [sg.Text('OPC Time: ',  font = ('any', 16)), sg.Text('', key='_OPC_Time_',  font = ('any', 16))],
@@ -202,7 +246,7 @@ def main():
                     [sg.Text('Battery Voltage: ',  font = ('any', 16)), sg.Text('', key='_Batt_V_',  font = ('any', 16))],
                     [sg.Text('Flow: ',  font = ('any', 16)), sg.Text('', key='_Flow_',  font = ('any', 16))]]
         hk_name = 'LPC House Keeping'
-    elif 'RS41' or 'rs41' in Instrument_name:
+    elif 'RS41' in Instrument_name:
         layout_hk = [[sg.Text('LPC House Keeping', font = ('any', 16, 'underline'))],
                     [sg.Text('')],
                     [sg.Text('Frame Count: ',  font = ('any', 16)), sg.Text('', key='_Frame_Count_',  font = ('any', 16))],
@@ -239,8 +283,9 @@ def main():
         time.sleep(0.01)
         plt.clf()
         read_csv(filename)
-        global counts
-        counts = LPC_data[['275','300','325','350','375','400','450','500','550','600','650','700','750','800','900','1000','1200','1400','1600','1800','2000','2500','3000','3500','4000','6000','8000','10000','13000','16000','24000']].tail(20).apply(pd.to_numeric)
+        if 'LPC' in Instrument_name:
+            global counts
+            counts = LPC_data[['275','300','325','350','375','400','450','500','550','600','650','700','750','800','900','1000','1200','1400','1600','1800','2000','2500','3000','3500','4000','6000','8000','10000','13000','16000','24000']].tail(20).apply(pd.to_numeric)
         #counts = 
         make_LOPC_fig(log_plot)
         time.sleep(0.01) 
@@ -248,7 +293,7 @@ def main():
         time.sleep(0.01)        #Pause Briefly. Important to keep drawnow from crashing
 
         #Update Housekeeping window
-        if 'LPC' or 'lpc' in Instrument_name:
+        if 'LPC' in Instrument_name:
             window2.Element('_OPC_Time_').Update(LPC_data['Time'].iloc[-1])
             window2.Element('_CN_Counts_').Update(int(float(LPC_data['300'].iloc[-1])*(flow*1000.0/30.0)))
             window2.Element('_PCB_T_').Update(LPC_data['PCB_T'].iloc[-1])
@@ -260,17 +305,17 @@ def main():
             window2.Element('_Pump2_PWM_').Update(LPC_data['Pump2_PWM'].iloc[-1])
             window2.Element('_Batt_V_').Update(LPC_data['Input_V'].iloc[-1])
             window2.Element('_Flow_').Update(LPC_data['Flow'].iloc[-1])
-        elif 'RS41' or 'rs41' in Instrument_name:
+        elif 'RS41' in Instrument_name:
             window2.Element('_Frame_Count_').Update(RS41_data['frame_count'].iloc[-1])
             window2.Element('_Air_Temp_').Update(RS41_data['air_temp_degC'].iloc[-1])
             window2.Element('_humidity_percent_').Update(RS41_data['humdity_percent'].iloc[-1])
             window2.Element('_pres_mb_').Update(RS41_data['pres_mb'].iloc[-1])
         
         #If you have 150 or more points (5 minutes), delete the first one from the array
-        if 'LPC' or 'lpc' in Instrument_name:
+        if 'LPC' in Instrument_name:
             if(len(LPC_data)>150):
                 LPC_data = LPC_data.tail(LPC_data.shape[0]-1)
-        elif 'RS41' or 'rs41' in Instrument_name:
+        elif 'RS41' in Instrument_name:
             if(len(RS41_data)>150):
                 RS41_data = RS41_data.tail(RS41_data.shape[0]-1)
             

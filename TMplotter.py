@@ -18,6 +18,7 @@ import PySimpleGUI as sg
 import sys 
 import time
 import numpy as np # Import numpy
+import matplotlib  #Use to move figure to upper right corner
 import matplotlib.pyplot as plt #import matplotlib library
 import pandas as pd
 
@@ -62,8 +63,7 @@ def find_csv():
     global Instrument_name
     csv_files = []
     filepaths = []
-    # This is to get the directory that the program 
-    # is currently running in.
+    # This is to get the directory that the program is currently running in
     dir_path = os.path.dirname(os.path.realpath(__file__))
      
     for root, dirs, files in os.walk(dir_path):
@@ -76,14 +76,12 @@ def find_csv():
     Instrument_list = ['LPC','RS41']
     Inst_layout = [[sg.InputCombo(values=Instrument_list, key = '_inst_',  font = ('any', 16))]]
     file_layout = [[sg.InputCombo(values=csv_files, key = '_file_',  font = ('any', 16))]]
-    #Enter_filename_layout = [sg.Text('Or Enter File Name: ',  font = ('any', 16)), sg.Input(do_not_clear=True, key='_FileName_', font = ('any', 16))]
-
+    
     layout_find_csv = [[sg.Frame('Select Instrument Type: ', Inst_layout, font = 'any 16')],
                         [sg.Frame('Select csv File: ', file_layout, font = 'any 16')],
-                        #[sg.Frame('Or Enter Filename: ', Enter_filename_layout, font = 'any 16')],
                         [sg.Submit( font = ('any', 16)), sg.Cancel( font = ('any', 16))]]
     
-    serial_window = sg.Window('Select Instrument Tpye and File', layout_find_csv)
+    serial_window = sg.Window('Select Instrument Tpye and File', layout_find_csv, keep_on_top = True)
     event, values = serial_window.Read()
     serial_window.Close()
 
@@ -116,9 +114,23 @@ def read_csv(filename):
 
 #Function to graph the data. Takes bool input 'log_lin', which is True by default and switches when
 #the button in the PySimpleGUI window is pressed
-def make_LOPC_fig(log_lin):  #Plot the CN Counts
+def make_LPC_fig(log_lin):  #Plot the CN Counts
+    global moveBool
+    moveBool = False
+    def move_figure(f, x, y):
+        """Move figure's upper left corner to pixel (x, y)"""
+        backend = matplotlib.get_backend()
+        if backend == 'TkAgg':
+            f.canvas.manager.window.wm_geometry("+%d+%d" % (x, y))
+        elif backend == 'WXAgg':
+            f.canvas.manager.window.SetPosition((x, y))
+        else:
+            # This works for QT and GTK
+            # You can also use window.setGeometry
+            f.canvas.manager.window.move(x, y)    
     try:
         if 'LPC' in Instrument_name:
+            
             plt.subplot2grid((4,1), (3, 0))
             plt.ylim(0, 1000)
             plt.title('Currents', fontsize = 'x-small')      #Plot the title
@@ -152,14 +164,14 @@ def make_LOPC_fig(log_lin):  #Plot the CN Counts
             if log_lin == True:
                 plt.yscale('log')
             plt.tight_layout()
-            '''
+            
             plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
             plt.fontsize = 'small'
             plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
             plt.ylabel('dN/dD')                            #Set ylabels
             plt.xlabel('Diameter [nm]', fontsize = 'small')
             plt.bar(diams,)
-            '''
+            
             plt.subplot2grid((4,1), (2, 0))
             plt.title('Cumulative', fontsize = 'x-small')      #Plot the title
             plt.grid(True)                                  #Turn the grid on
@@ -172,6 +184,13 @@ def make_LOPC_fig(log_lin):  #Plot the CN Counts
                 plt.yscale('log')
             plt.legend(loc='upper left', fontsize = 'x-small')
             plt.tight_layout()
+            '''
+            if (moveBool != True):
+                fig = plt.gcf()
+                figsize = fig.get_size_inches()*fig.dpi
+                move_figure(1, screen_width-figsize, 25)
+                moveBool = True
+                '''
         elif 'RS41' in Instrument_name:
             plt.subplot2grid((4,1),(0,0))
             #plt.ylim()
@@ -222,12 +241,19 @@ def main():
     global RS41_data
     log_plot = True
     find_csv()
+    
     #initialize PySimpleGUI interactive window and Housekeeping window
     plot_frame_layout = [[sg.Text('Plot Axis Type: ', font = ('any', 16))],
                          [sg.Button('Log', font = ('any', 16), border_width = 3), sg.Button('Linear', font = ('any', 16),border_width = 3)],
                          [sg.Button('Exit',  font = ('any', 16),border_width = 3, button_color = ('black', 'red'))]]
     
-    window1 = sg.Window("Graphing Axis", plot_frame_layout, keep_on_top=True)
+    window1 = sg.Window("Graphing Axis", plot_frame_layout, keep_on_top=True, finalize = True)
+    global screen_width
+    global screen_height
+    screen_width, screen_height = window1.get_screen_dimensions()
+    win1_width, win1_height = window1.size
+    x, y = (screen_width - win1_width - 75), (screen_height - win1_height - 75)
+    window1.move(x,y)
     
     if 'LPC' in Instrument_name:
         layout_hk =[[sg.Text('LPC House Keeping', font = ('any', 16, 'underline'))],
@@ -257,7 +283,10 @@ def main():
     else:
         print('Invalid instrument name')  
               
-    window2 = sg.Window(hk_name, layout_hk)
+    window2 = sg.Window(hk_name, layout_hk, finalize = True)
+    win2_width, win2_height = window2.size
+    x2, y2 = screen_width // 2, (screen_height - win2_height - 75)
+    window2.move(x2,y2)
     
     while True:
         #check if either PYSimpleGUI window has been closed or 'Exit' has been pressed
@@ -287,7 +316,7 @@ def main():
             global counts
             counts = LPC_data[['275','300','325','350','375','400','450','500','550','600','650','700','750','800','900','1000','1200','1400','1600','1800','2000','2500','3000','3500','4000','6000','8000','10000','13000','16000','24000']].tail(20).apply(pd.to_numeric)
         #counts = 
-        make_LOPC_fig(log_plot)
+        make_LPC_fig(log_plot)
         time.sleep(0.01) 
         plt.draw()
         time.sleep(0.01)        #Pause Briefly. Important to keep drawnow from crashing

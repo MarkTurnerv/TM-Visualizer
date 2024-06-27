@@ -115,6 +115,7 @@ def read_csv(filename):
 #Function to graph the data. Takes bool input 'log_lin', which is True by default and switches when
 #the button in the PySimpleGUI window is pressed
 def make_LPC_fig(log_lin):  #Plot the CN Counts
+    '''
     global moveBool
     moveBool = False
     def move_figure(f, x, y):
@@ -127,10 +128,10 @@ def make_LPC_fig(log_lin):  #Plot the CN Counts
         else:
             # This works for QT and GTK
             # You can also use window.setGeometry
-            f.canvas.manager.window.move(x, y)    
+            f.canvas.manager.window.move(x, y)
+    '''
     try:
         if 'LPC' in Instrument_name:
-            
             plt.subplot2grid((4,1), (3, 0))
             plt.ylim(0, 1000)
             plt.title('Currents', fontsize = 'x-small')      #Plot the title
@@ -164,14 +165,14 @@ def make_LPC_fig(log_lin):  #Plot the CN Counts
             if log_lin == True:
                 plt.yscale('log')
             plt.tight_layout()
-            
+            '''
             plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
             plt.fontsize = 'small'
             plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
             plt.ylabel('dN/dD')                            #Set ylabels
             plt.xlabel('Diameter [nm]', fontsize = 'small')
             plt.bar(diams,)
-            
+            '''
             plt.subplot2grid((4,1), (2, 0))
             plt.title('Cumulative', fontsize = 'x-small')      #Plot the title
             plt.grid(True)                                  #Turn the grid on
@@ -190,7 +191,7 @@ def make_LPC_fig(log_lin):  #Plot the CN Counts
                 figsize = fig.get_size_inches()*fig.dpi
                 move_figure(1, screen_width-figsize, 25)
                 moveBool = True
-                '''
+            '''
         elif 'RS41' in Instrument_name:
             plt.subplot2grid((4,1),(0,0))
             #plt.ylim()

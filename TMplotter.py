@@ -42,6 +42,8 @@ diams = [275,300,325,350,375,400,450,500,550,600,650,700,750,800,900,1000,1200,1
 #Instrument_name = input("Enter Instrument (LPC or RS41):")
 #filename = input("Enter filename: ")
 
+moveBool = False
+
 plt.ion() #Tell matplotlib you want interactive mode to plot live data
 '''LPC String Header
 Time,Pump1_I,Pump2_I,PHA_I,PHA_12V,PHA_3V3,Input_V,Flow,CPU_V,Pump1_PWM,Pump2_PWM,Pump1_T,Pump2_T,Laser_T,PCB_T,Inlet_T,275,300,325,350,375,400,450,500,550,600,650,700,750,800,900,1000,1200,1400,1600,1800,2000,2500,3000,3500,4000,6000,8000,10000,13000,16000,24000,24000
@@ -115,9 +117,8 @@ def read_csv(filename):
 #Function to graph the data. Takes bool input 'log_lin', which is True by default and switches when
 #the button in the PySimpleGUI window is pressed
 def make_LPC_fig(log_lin):  #Plot the CN Counts
-    '''
+    
     global moveBool
-    moveBool = False
     def move_figure(f, x, y):
         """Move figure's upper left corner to pixel (x, y)"""
         backend = matplotlib.get_backend()
@@ -128,112 +129,118 @@ def make_LPC_fig(log_lin):  #Plot the CN Counts
         else:
             # This works for QT and GTK
             # You can also use window.setGeometry
-            f.canvas.manager.window.move(x, y)
-    '''
-    try:
-        if 'LPC' in Instrument_name:
-            plt.subplot2grid((4,1), (3, 0))
-            plt.ylim(0, 1000)
-            plt.title('Currents', fontsize = 'x-small')      #Plot the title
-            plt.grid(True)                                  #Turn the grid on
-            plt.ylabel('mA')                            #Set ylabels
-            plt.plot(LPC_data["Time"], LPC_data["Pump1_I"], 'k-', label='Pump1 I')       #plot the channels
-            plt.plot(LPC_data["Time"], LPC_data["Pump2_I"], 'r-', label='Pump2 I')
-            plt.legend(loc='upper left', fontsize = 'x-small')
-            plt.xlabel('Elapsed Time [s]', fontsize = 'x-small')
-            plt.tight_layout()
+            plt.gcf().canvas.manager.window.move(int(x), y)
+    
+    #try:
+    if 'LPC' in Instrument_name:
+        plt.subplot2grid((4,1), (3, 0))     #set subplot grid and plot Pump Current vs Time
+        plt.ylim(0, 1000)
+        plt.title('Currents', fontsize = 'x-small')      #Plot the title
+        plt.grid(True)                                  #Turn the grid on
+        plt.ylabel('mA')                            #Set ylabels
+        plt.plot(LPC_data["Time"], LPC_data["Pump1_I"], 'k-', label='Pump1 I')       #plot the channels
+        plt.plot(LPC_data["Time"], LPC_data["Pump2_I"], 'r-', label='Pump2 I')
+        plt.legend(loc='upper left', fontsize = 'x-small')
+        plt.xlabel('Elapsed Time [s]', fontsize = 'x-small')
+        plt.tight_layout()
+        
+        plt2=plt.twinx()    #Plot Pump Temperature vs Time on the same axes
+        plt2.plot(LPC_data["Time"], LPC_data["Pump1_T"], 'b-', label='Pump1 T')
+        plt2.plot(LPC_data["Time"], LPC_data["Pump2_T"], 'g-', label='Pump2 T')
+        plt2.legend(loc='upper right', fontsize = 'x-small')
+        
+        graphcounts = counts.mean()     #average the last 20 data points for the particle counts
+        graphcounts = graphcounts.transpose()
+        plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
+        plt.fontsize = 'small'
+        plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
+        plt.ylabel('dN/dD')                            #Set ylabels
+        plt.xlabel('Diameter [nm]', fontsize = 'small')
+        plt.plot(diams, graphcounts, 'k-', label='High Gain')       #plot the channels
+        plt.xlim(300,10000)
+        plt.xscale('log')
+        xticks = [300,400, 500, 700, 1000, 2000, 5000]
+        plt.grid(True)
+        plt.xticks(xticks, ['%d'  % i for i in xticks] )
+        #plt.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
+        if log_lin == True:
+            plt.yscale('log')
+        plt.tight_layout()
+        '''
+        plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
+        plt.fontsize = 'small'
+        plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
+        plt.ylabel('dN/dD')                            #Set ylabels
+        plt.xlabel('Diameter [nm]', fontsize = 'small')
+        plt.bar(diams,)
+        '''
+        plt.subplot2grid((4,1), (2, 0))
+        plt.title('Cumulative', fontsize = 'x-small')      #Plot the title
+        plt.grid(True)                                  #Turn the grid on
+        plt.ylabel('#/cc')                            
+        plt.plot(LPC_data["Time"], LPC_data['300'], 'k-', label='300nm')
+        plt.plot(LPC_data["Time"], LPC_data['500'], 'r-', label='500nm')
+        plt.plot(LPC_data["Time"], LPC_data['1000'], 'b-', label='1000nm')
+        plt.plot(LPC_data["Time"], LPC_data['2000'], 'g-', label='2000nm')
+        if log_lin == True:
+            plt.yscale('log')
+        plt.legend(loc='upper left', fontsize = 'x-small')
+        plt.tight_layout()
+        
+        if (moveBool != True):  #move the figure to the upper right corner of the screen the first
+            fig = plt.gcf()     #time it is generated
+            figsize = fig.get_size_inches()*fig.dpi
+            move_figure(1, screen_width-figsize[0]-15, 15)
+            moveBool = True
+        
+    elif 'RS41' in Instrument_name:
+        plt.subplot2grid((4,1),(0,0))
+        #plt.ylim()
+        plt.title('RS41 Air Temperature')
+        plt.xlabel("Frame Count", fontsize = 'x-small')
+        plt.ylabel("Air Temperature [C]", fontsize = 'x-small')
+        plt.grid()
+        plt.plot(RS41_data['frame_count'],RS41_data['air_temp_degC'], label='Air Temp [C]')
+        plt.legend(loc='upper left', fontsize = 'x-small')
+        plt.tight_layout()
+        
+        plt.title('RS41 Humidity')
+        plt.subplot2grid((4,1),(1,0))
+        plt.plot(RS41_data['frame_count'],RS41_data['humdity_percent'], label='Humidity Percent')
+        plt.ylabel("Humidity Percent", fontsize = 'x-small')
+        plt.legend(loc='upper left', fontsize = 'x-small')
+        
+        plt.subplot2grid((4,1),(2,0))
+        #plt.ylim()
+        plt.title('RS41 Pressure')
+        plt.xlabel("Frame Count", fontsize = 'x-small')
+        plt.ylabel("Pressure [mb]", fontsize = 'x-small')
+        plt.grid()
+        plt.plot(RS41_data['frame_count'],RS41_data['pres_mb'], label='Air Temp [C]')
+        plt.legend(loc='upper left', fontsize = 'x-small')
+        plt.tight_layout()
+        
+        plt.subplot2grid((4,1),(3,0))
+        #plt.ylim()
+        plt.title('RS41 Error')
+        plt.xlabel("Frame Count", fontsize = 'x-small')
+        plt.ylabel("Error", fontsize = 'x-small')
+        plt.grid()
+        plt.plot(RS41_data['frame_count'],RS41_data['module_error'], label='Air Temp [C]')
+        plt.legend(loc='upper left', fontsize = 'x-small')
+        plt.tight_layout()
+        
+        if (moveBool != True):  #Moves figure first time it is generated
+            fig = plt.gcf()
+            figsize = fig.get_size_inches()*fig.dpi
+            move_figure(1, screen_width-figsize[0]-15, 15)
+            moveBool = True
             
-            plt2=plt.twinx()
-            plt2.plot(LPC_data["Time"], LPC_data["Pump1_T"], 'b-', label='Pump1 T')
-            plt2.plot(LPC_data["Time"], LPC_data["Pump2_T"], 'g-', label='Pump2 T')
-            plt2.legend(loc='upper right', fontsize = 'x-small')
-            
-            graphcounts = counts.mean()
-            graphcounts = graphcounts.transpose()
-            plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
-            plt.fontsize = 'small'
-            plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
-            plt.ylabel('dN/dD')                            #Set ylabels
-            plt.xlabel('Diameter [nm]', fontsize = 'small')
-            plt.plot(diams, graphcounts, 'k-', label='High Gain')       #plot the channels
-            plt.xlim(300,10000)
-            plt.xscale('log')
-            xticks = [300,400, 500, 700, 1000, 2000, 5000]
-            plt.grid(True)
-            plt.xticks(xticks, ['%d'  % i for i in xticks] )
-            #plt.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-            if log_lin == True:
-                plt.yscale('log')
-            plt.tight_layout()
-            '''
-            plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
-            plt.fontsize = 'small'
-            plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
-            plt.ylabel('dN/dD')                            #Set ylabels
-            plt.xlabel('Diameter [nm]', fontsize = 'small')
-            plt.bar(diams,)
-            '''
-            plt.subplot2grid((4,1), (2, 0))
-            plt.title('Cumulative', fontsize = 'x-small')      #Plot the title
-            plt.grid(True)                                  #Turn the grid on
-            plt.ylabel('#/cc')                            
-            plt.plot(LPC_data["Time"], LPC_data['300'], 'k-', label='300nm')
-            plt.plot(LPC_data["Time"], LPC_data['500'], 'r-', label='500nm')
-            plt.plot(LPC_data["Time"], LPC_data['1000'], 'b-', label='1000nm')
-            plt.plot(LPC_data["Time"], LPC_data['2000'], 'g-', label='2000nm')
-            if log_lin == True:
-                plt.yscale('log')
-            plt.legend(loc='upper left', fontsize = 'x-small')
-            plt.tight_layout()
-            '''
-            if (moveBool != True):
-                fig = plt.gcf()
-                figsize = fig.get_size_inches()*fig.dpi
-                move_figure(1, screen_width-figsize, 25)
-                moveBool = True
-            '''
-        elif 'RS41' in Instrument_name:
-            plt.subplot2grid((4,1),(0,0))
-            #plt.ylim()
-            plt.title('RS41 Air Temperature')
-            plt.xlabel("Frame Count", fontsize = 'x-small')
-            plt.ylabel("Air Temperature [C]", fontsize = 'x-small')
-            plt.grid()
-            plt.plot(RS41_data['frame_count'],RS41_data['air_temp_degC'], label='Air Temp [C]')
-            plt.legend(loc='upper left', fontsize = 'x-small')
-            plt.tight_layout()
-            
-            plt.title('RS41 Humidity')
-            plt.subplot2grid((4,1),(1,0))
-            plt.plot(RS41_data['frame_count'],RS41_data['humdity_percent'], label='Humidity Percent')
-            plt.ylabel("Humidity Percent", fontsize = 'x-small')
-            plt.legend(loc='upper left', fontsize = 'x-small')
-            
-            plt.subplot2grid((4,1),(2,0))
-            #plt.ylim()
-            plt.title('RS41 Pressure')
-            plt.xlabel("Frame Count", fontsize = 'x-small')
-            plt.ylabel("Pressure [mb]", fontsize = 'x-small')
-            plt.grid()
-            plt.plot(RS41_data['frame_count'],RS41_data['pres_mb'], label='Air Temp [C]')
-            plt.legend(loc='upper left', fontsize = 'x-small')
-            plt.tight_layout()
-            
-            plt.subplot2grid((4,1),(3,0))
-            #plt.ylim()
-            plt.title('RS41 Error')
-            plt.xlabel("Frame Count", fontsize = 'x-small')
-            plt.ylabel("Error", fontsize = 'x-small')
-            plt.grid()
-            plt.plot(RS41_data['frame_count'],RS41_data['module_error'], label='Air Temp [C]')
-            plt.legend(loc='upper left', fontsize = 'x-small')
-            plt.tight_layout()
-            
-        else:
-            print("Invalid filename")
-            
-    except:
-        print('Plotting Exception')
+    else:
+        print("Invalid filename")
+        
+    #except:
+   #     print('Plotting Exception')
  
 #main function runs the other funcions when TMplotter.py is run as a script
 def main():
@@ -243,19 +250,20 @@ def main():
     log_plot = True
     find_csv()
     
-    #initialize PySimpleGUI interactive window and Housekeeping window
+    #initialize PySimpleGUI interactive window
     plot_frame_layout = [[sg.Text('Plot Axis Type: ', font = ('any', 16))],
                          [sg.Button('Log', font = ('any', 16), border_width = 3), sg.Button('Linear', font = ('any', 16),border_width = 3)],
                          [sg.Button('Exit',  font = ('any', 16),border_width = 3, button_color = ('black', 'red'))]]
     
     window1 = sg.Window("Graphing Axis", plot_frame_layout, keep_on_top=True, finalize = True)
+    #Move interactive window to bottom right corner of screen
     global screen_width
     global screen_height
     screen_width, screen_height = window1.get_screen_dimensions()
     win1_width, win1_height = window1.size
     x, y = (screen_width - win1_width - 75), (screen_height - win1_height - 75)
     window1.move(x,y)
-    
+    #initialize PySimpleGUI Housekeeping window
     if 'LPC' in Instrument_name:
         layout_hk =[[sg.Text('LPC House Keeping', font = ('any', 16, 'underline'))],
                     [sg.Text('')],
@@ -283,7 +291,7 @@ def main():
         hk_name = 'RS41 House Keeping'
     else:
         print('Invalid instrument name')  
-              
+    #Move Housekeeping window to bottom middle of screen         
     window2 = sg.Window(hk_name, layout_hk, finalize = True)
     win2_width, win2_height = window2.size
     x2, y2 = screen_width // 2, (screen_height - win2_height - 75)
@@ -342,6 +350,7 @@ def main():
             window2.Element('_pres_mb_').Update(RS41_data['pres_mb'].iloc[-1])
         
         #If you have 150 or more points (5 minutes), delete the first one from the array
+            #This is holdover from LOPC Plotter code; I am not sure if the data rate is the same for LPC telemetry messages as for LOPC
         if 'LPC' in Instrument_name:
             if(len(LPC_data)>150):
                 LPC_data = LPC_data.tail(LPC_data.shape[0]-1)

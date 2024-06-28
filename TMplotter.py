@@ -221,11 +221,9 @@ def make_LPC_fig(log_lin):  #Plot the CN Counts
                 fig = plt.gcf()
                 figsize = fig.get_size_inches()*fig.dpi
                 move_figure(1, screen_width-figsize[0]-15, 15)
-                moveBool = True
-                
+                moveBool = True  
         else:
-            print("Invalid filename")
-            
+            print("Invalid filename")   
     except:
         print('Plotting Exception')
  

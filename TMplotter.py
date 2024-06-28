@@ -10,7 +10,7 @@ Telemetry Message Plotter
 
 Plots values from csv file created by TMdecoder. Test files are located in the folder 'TelemetryMessages'.
 
-User Inputs (command line): Instrument Type (LPC or RS41)
+User Inputs (GUI window): Instrument Type (LPC or RS41)
                             csv filename
 """
 

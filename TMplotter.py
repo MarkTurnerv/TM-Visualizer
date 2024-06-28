@@ -39,8 +39,6 @@ c0 = 297.09
 flow = 20.0
 cal_val = np.array([999,hg_m,hg_b,lg_m, lg_b, c4, c3, c2, c1, c0, flow])
 diams = [275,300,325,350,375,400,450,500,550,600,650,700,750,800,900,1000,1200,1400,1600,1800,2000,2500,3000,3500,4000,6000,8000,10000,13000,16000,24000]
-#Instrument_name = input("Enter Instrument (LPC or RS41):")
-#filename = input("Enter filename: ")
 
 moveBool = False
 
@@ -96,9 +94,6 @@ def find_csv():
             filename = filepath + '\\' + filename
         Instrument_name = values['_inst_']
 
-        
-
-
 # Function to read in the user-defined filename into a PANDAS DataFrame
 def read_csv(filename):
     if 'LPC' in Instrument_name:
@@ -117,7 +112,6 @@ def read_csv(filename):
 #Function to graph the data. Takes bool input 'log_lin', which is True by default and switches when
 #the button in the PySimpleGUI window is pressed
 def make_LPC_fig(log_lin):  #Plot the CN Counts
-    
     global moveBool
     def move_figure(f, x, y):
         """Move figure's upper left corner to pixel (x, y)"""
@@ -166,14 +160,7 @@ def make_LPC_fig(log_lin):  #Plot the CN Counts
             if log_lin == True:
                 plt.yscale('log')
             plt.tight_layout()
-            '''
-            plt.subplot2grid((4,1), (0,0), colspan = 1, rowspan = 2)
-            plt.fontsize = 'small'
-            plt.title(Instrument_name, fontsize = 'x-small')      #Plot the title
-            plt.ylabel('dN/dD')                            #Set ylabels
-            plt.xlabel('Diameter [nm]', fontsize = 'small')
-            plt.bar(diams,)
-            '''
+            
             plt.subplot2grid((4,1), (2, 0))
             plt.title('Cumulative', fontsize = 'x-small')      #Plot the title
             plt.grid(True)                                  #Turn the grid on
